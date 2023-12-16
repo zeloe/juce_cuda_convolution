@@ -5,6 +5,9 @@
   cd juce_cuda_convolution
   git clone modules/https://github.com/juce-framework/JUCE.git
   cmake . -DCMAKE_CUDA_HOST_COMPILER=/usr/bin/g++-10 -Bbuild
+  cd build
+  make -j20
+  ./TestCUDA_artefacts/TestCUDA
 ```
 
    \
