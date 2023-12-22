@@ -3,7 +3,9 @@
  ```shell
   git clone https://github.com/zeloe/juce_cuda_convolution.git
   cd juce_cuda_convolution
-  git clone modules/https://github.com/juce-framework/JUCE.git
+  cd modules
+  git clone https://github.com/juce-framework/JUCE.git
+  cd ..
   cmake . -DCMAKE_CUDA_HOST_COMPILER=/usr/bin/g++-10 -Bbuild
   cd build
   make -j20
