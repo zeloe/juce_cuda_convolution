@@ -3,65 +3,91 @@
 
 
 
-__global__ void circularConvKernel(const float* x1, const float* x2, const int* size, float* result)
+__global__ void circularConvKernel( float* x1,  float* x2, const int* size, float* result, const  int* channels)
+{
+   	const int c = blockIdx.x * blockDim.x + threadIdx.x; // samples
+    	int ch = 0;
+
+    	if (c < *size * *channels) {
+       		int offset = ch  * (*size); // Offset to the start of the current channel
+
+        	float val = 0;
+
+        	for (int i = 0; i < *size; i++) {
+            		int index = (c - i + *size) % *size;
+            		val += x1[offset + i] * x2[offset + index];
+        }
+
+        	result[offset + c] = val;
+        	 ch++;
+    }
+   
+}
+
+
+__global__ void cu_mult(float* x1, float* scale, const  int* channels, const  int* size)
 {
     int id = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (id < *size) {
-        float val = 0;
-
-        for (int i = 0; i < *size; i++) {
-            int index = (id - i + *size) % *size;
-            val += x1[i] * x2[index];
-        }
-        
-        result[id] = val;
+    for(unsigned int ch = 0; ch < *channels; ch++)
+    {
+        int index = ch * (*size) + id;
+        x1[index] *= *scale;
     }
 }
+void gpuRev(float* dryBuffer,float* irBuffer, const int bufferSize, float* out, const unsigned int channels)
+{
 
-void gpuRev(const float* dryBuffer,const  float* irBuffer, const int irBufferSize, int blocks, int threads, float* out)
- {
- 
- 	 
+	int threads = 1024;
+
+	int blocks = ((int)(bufferSize * channels) / threads) + 1;
 
 
-	float* d_wetBuffer;
-	cudaMalloc((void**)&d_wetBuffer, (irBufferSize) * sizeof(float));
+    	float* d_wetBuffer;
+    	float* d_dryBufferC;
+    	float* d_impBufferC;
+    	
+    	int* d_size;
+    	cudaMalloc((void**)&d_size, sizeof(int));
 
-	float* d_dryBufferC;
-	cudaMalloc((void**)&d_dryBufferC, (irBufferSize) * sizeof(float));
+    	int* d_channels;
+    	cudaMalloc((void**)&d_channels, sizeof( int));
+
+    	float* d_scale;
+    	float h_scale = 0.15;
+    	cudaMalloc((void**)&d_scale, sizeof(float));
+    	cudaMemcpy(d_scale, &h_scale, sizeof(float), cudaMemcpyHostToDevice);
+
+    // Copy to GPU
+    	cudaMemcpy(d_size, &bufferSize, sizeof(int), cudaMemcpyHostToDevice);
+    	cudaMemcpy(d_channels, &channels, sizeof( int), cudaMemcpyHostToDevice);
+
+
+	cudaMalloc( (void**)&d_wetBuffer ,bufferSize * channels*sizeof(float) );
+	cudaMalloc( (void**)&d_dryBufferC ,bufferSize * channels*sizeof(float) );
+	cudaMalloc( (void**)&d_impBufferC , bufferSize * channels*sizeof(float) );
 	
-	float* d_impBufferC;
-	cudaMalloc((void**)&d_impBufferC, (irBufferSize) * sizeof(float));
-	
-	int* d_size;
-	cudaMalloc((void**)&d_size, sizeof(int));
-	
-	//copy to gpu
-	cudaMemcpy(d_size, &irBufferSize, sizeof(int), cudaMemcpyHostToDevice);
- 	cudaMemcpy(d_dryBufferC, dryBuffer, (irBufferSize) * sizeof(float), cudaMemcpyHostToDevice);
-	cudaMemcpy(d_impBufferC, irBuffer, (irBufferSize) * sizeof(float), cudaMemcpyHostToDevice);
- 	
- 	//perform
-	 circularConvKernel<<<blocks, threads>>>(d_dryBufferC,d_impBufferC, d_size, d_wetBuffer);
-	 cudaDeviceSynchronize();
-	 // Wait for GPU to finish before accessing on host
-
-
+	cudaMemcpy(d_dryBufferC,dryBuffer,bufferSize * channels*sizeof(float),cudaMemcpyHostToDevice);
+	cudaMemcpy(d_impBufferC,irBuffer,bufferSize * channels*sizeof(float),cudaMemcpyHostToDevice);
 	 
-	
-	 cudaMemcpy(out, d_wetBuffer, (irBufferSize) * sizeof(float), cudaMemcpyDeviceToHost);
 
+	// Perform circular convolution
+	circularConvKernel<<<blocks, threads>>>(d_dryBufferC, d_impBufferC, d_size, d_wetBuffer, d_channels);
+	cudaDeviceSynchronize();
 
-	  
-	 
-	// Free device and host memory
-    	 
-   	 cudaFree(d_dryBufferC);
-   	 cudaFree(d_impBufferC);
-   	 cudaFree(d_wetBuffer);
-   	 cudaFree(d_size);
-    
+	// Perform multiplication/normalisation
+	//cu_mult<<<gridSize_mult, blockSize_mult>>>(d_wetBuffer, d_scale, d_channels, d_size);
+	//cudaDeviceSynchronize();
+
+    // Copy result back to host
+    	cudaMemcpy(out,d_wetBuffer,bufferSize * channels*sizeof(float), cudaMemcpyDeviceToHost);
+
+     
+
+    cudaFree(d_size);
+    cudaFree(d_channels);
+    cudaFree(d_scale);
+    cudaFree(d_wetBuffer);
+    cudaFree(d_dryBufferC);
+    cudaFree(d_impBufferC);
 }
-
-
