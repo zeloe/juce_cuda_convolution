@@ -38,7 +38,7 @@ set (TARGET_NAME ${PROJECT_NAME})
 set(CMAKE_CUDA_HOST_COMPILER "/usr/bin/g++-10")
 juce_add_console_app(${TARGET_NAME}
     PRODUCT_NAME "CudaConv")
-# Add your source files excluding the CUDA kernel file
+    
 add_subdirectory(terminalapp)
 add_subdirectory(binarydata)
 juce_generate_juce_header(${TARGET_NAME})

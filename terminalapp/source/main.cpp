@@ -7,47 +7,30 @@
 int main()
 {
  
-	std::string drypath;
-	std::string irpath;
-	std::string output;
-	std::cout << "Path to Dry File= " << std::endl;
-	std::cin >> drypath; 
-	std::cout << "Path to Impulse Response File= " << std::endl;
-	std::cin >> irpath;
-	std::cout << "Output filepath " << std::endl;
-	std::cin >> output;
-
-	juce::AudioFormatManager formatManager;
-	output = "/home/zelo/Desktop/";
-	formatManager.registerBasicFormats();
-	juce::File file = juce::File(irpath);
-	auto* impfile = formatManager.createReaderFor(file);
+	auto* IRStream = new juce::MemoryInputStream(BinaryData::_128_wav, BinaryData::_128_wavSize,false);
+	auto* DRYStream= new juce::MemoryInputStream(BinaryData::dry_wav, BinaryData::dry_wavSize, false);
+	
+	WavAudioFormat wavFormat;
+	std::unique_ptr<AudioFormatReader> impfile (wavFormat.createReaderFor (IRStream, false));
+ 
+	
 	const unsigned int channels = impfile->numChannels;
-	
-	
-	juce::AudioFormatManager formatManager2;
-	formatManager2.registerBasicFormats();
-	juce::File file2 = juce::File(drypath);
-	auto* dry = formatManager2.createReaderFor(file2);
+	WavAudioFormat wavFormat2;
+	std::unique_ptr<AudioFormatReader> dry (wavFormat2.createReaderFor (DRYStream, false));
+ 
 	
 	
 	
-	int temp = impfile->lengthInSamples * 2;
-	std::cout<<temp / 2 << " Length in samples of impulse response" << std::endl;
+	int temp = impfile->lengthInSamples;
+	std::cout<<temp<< " Length in samples of impulse response" << std::endl;
 	std::cout<<channels << " Total number of channels of impulse Response" << std::endl; 
 	
+	int temp2 = dry->lengthInSamples;
 	
+	std::cout<<temp2<< " Length in samples of dry audio" << std::endl; 
 	
-	
-	int temp2 = dry->lengthInSamples * 2;
-	
-	std::cout<<temp2 / 2<< " Length in samples of dry audio" << std::endl; 
-	
-	
-	if(temp2 > temp)
-	{
-		temp = temp2;
-	}
+	temp = temp2 + temp;
+
 	
 	
 	
@@ -99,9 +82,13 @@ int main()
 	juce::WavAudioFormat format;
 	std::unique_ptr<juce::AudioFormatWriter> writer;
 	 
-	 
-	juce::File outfile = juce::File(output);
-	writer.reset (format.createWriterFor (new FileOutputStream (outfile),
+	juce::File path = juce::File::getSpecialLocation(juce::File::SpecialLocationType::currentExecutableFile);
+	juce::String outfile = path.getFullPathName() + "_output.wav";
+	DBG(outfile);
+
+	juce::FileOutputStream stream(outfile);
+
+	writer.reset (format.createWriterFor ((&stream),
                                       44100.0,
                                       channels,
                                       24,
