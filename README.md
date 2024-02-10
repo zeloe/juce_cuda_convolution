@@ -2,24 +2,17 @@
  Linear Convolution using CUDA 
  ```shell
   git clone https://github.com/zeloe/juce_cuda_convolution.git
-  cd juce_cuda_convolution
-  cd modules
-  git clone https://github.com/juce-framework/JUCE.git
-  cd ..
-  cmake . -DCMAKE_CUDA_HOST_COMPILER=/usr/bin/g++-10 -Bbuild
+  cmake -B build
   cd build
-  make -j20
-  ./TestCUDA_artefacts/TestCUDA
+  cmake --build . --config Release -j24
+  ./CUDATemplate_artefacts/Release/CUDATemplate
 ```
-# how it works
+# How it works
 It performs a linear convolution on two different files. \
-I provided a 128 channel impulse response and the resulting file is a 128 channel audio file. \
-Enter file paths in terminal.
+They are in project as binary data. \
+I provided a 128 channel impulse response and the resulting file is a 128 channel audio file. 
 
-
-
-
-   \
-  Note: \
-  This only works on Ubuntu. \
-  It still needs optimisation.
+# Note: 
+This only works on Ubuntu. \
+It still needs optimisation. \
+As a template repo i used this [template](https://github.com/anthonyalfimov/JUCE-CMake-Plugin-Template/blob/main/CMakeLists.txt).
