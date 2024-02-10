@@ -11,9 +11,15 @@
   make -j20
   ./TestCUDA_artefacts/TestCUDA
 ```
+# how it works
+It performs a linear convolution on two different files. \
+I provided a 128 channel impulse response and the resulting file is a 128 channel audio file. \
+Enter file paths in terminal.
+
+
+
 
    \
   Note: \
   This only works on Ubuntu. \
-  Edit paths to audiofiles in main.cpp
-  
+  It still needs optimisation.
