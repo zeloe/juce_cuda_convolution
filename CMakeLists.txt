@@ -10,7 +10,7 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 option(JUCE_ENABLE_MODULE_SOURCE_GROUPS "Show all module sources in IDE projects" ON)
 
 
-
+set(LIB_JUCE_TAG "7.0.9")
 
 include(FetchContent)
 
@@ -40,6 +40,7 @@ juce_add_console_app(${TARGET_NAME}
     PRODUCT_NAME "CudaConv")
 # Add your source files excluding the CUDA kernel file
 add_subdirectory(terminalapp)
+add_subdirectory(binarydata)
 juce_generate_juce_header(${TARGET_NAME})
 target_compile_definitions(${TARGET_NAME}
     PRIVATE
@@ -53,6 +54,7 @@ set_property(TARGET ${TARGET_NAME} PROPERTY CUDA_STANDARD 17)
 find_package(CUDAToolkit REQUIRED)
 target_link_libraries(${TARGET_NAME}
     PRIVATE
+        BinaryData
         juce::juce_core
         juce::juce_audio_utils
     	juce::juce_dsp
