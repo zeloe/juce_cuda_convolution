@@ -13,6 +13,6 @@ They are in project as binary data. \
 I provided a 128 channel impulse response and the resulting file is a 128 channel audio file. 
 
 # Note: 
-This only works on Ubuntu. \
+This only works on Windows and Ubuntu. \
 It still needs optimisation. \
 As a template repo i used this [template](https://github.com/anthonyalfimov/JUCE-CMake-Plugin-Template/blob/main/CMakeLists.txt).
