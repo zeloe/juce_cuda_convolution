@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
 
-project(CUDATemplate LANGUAGES VERSION 0.0.1 CXX CUDA)
+project(CUDATemplate LANGUAGES VERSION 0.0.1 CUDA CXX)
 
 
 # IDEs:  Enable grouping of source files into folders in IDEs.
@@ -34,14 +34,19 @@ FetchContent_MakeAvailable(juce)
 
 set (TARGET_NAME ${PROJECT_NAME})
  
+if (CMAKE_SYSTEM_NAME MATCHES "Linux")
+    set(CMAKE_CUDA_HOST_COMPILER "/usr/bin/g++-10")
+endif()
 
-set(CMAKE_CUDA_HOST_COMPILER "/usr/bin/g++-10")
+
 juce_add_console_app(${TARGET_NAME}
     PRODUCT_NAME "CudaConv")
-    
+find_package(CUDAToolkit REQUIRED)
+find_package(CUDA REQUIRED)
+ 
 add_subdirectory(terminalapp)
 add_subdirectory(binarydata)
-juce_generate_juce_header(${TARGET_NAME})
+
 target_compile_definitions(${TARGET_NAME}
     PRIVATE
         # JUCE_WEB_BROWSER and JUCE_USE_CURL would be on by default, but you might not need them.
@@ -50,8 +55,7 @@ target_compile_definitions(${TARGET_NAME}
 # Set C++ standard
 set_property(TARGET ${TARGET_NAME} PROPERTY CUDA_STANDARD 17)
 
-# Link libraries and CUDA toolkit
-find_package(CUDAToolkit REQUIRED)
+
 target_link_libraries(${TARGET_NAME}
     PRIVATE
         BinaryData
@@ -59,9 +63,9 @@ target_link_libraries(${TARGET_NAME}
         juce::juce_audio_utils
     	juce::juce_dsp
         CUDA::cudart
+        CU_LIB
     PUBLIC
         juce::juce_recommended_config_flags
         juce::juce_recommended_warning_flags
 )
-set_property(TARGET ${TARGET_NAME} PROPERTY CUDA_ARCHITECTURES OFF)
-
+juce_generate_juce_header(${TARGET_NAME})

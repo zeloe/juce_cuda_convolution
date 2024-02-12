@@ -1,9 +1,7 @@
-
 #include "kernel.h"
 
 
-
-__global__ void circularConvKernel( float* x1,  float* x2, const int* size, float* result, const  int* channels)
+ __global__ void circularConvKernel( float* x1,  float* x2, const int* size, float* result, const  int* channels)
 {
    	const int c = blockIdx.x * blockDim.x + threadIdx.x; // samples
     	int ch = 0;
@@ -25,7 +23,7 @@ __global__ void circularConvKernel( float* x1,  float* x2, const int* size, floa
 }
 
 
-__global__ void cu_mult(float* x1, float* scale, const  int* channels, const  int* size)
+ __global__ void cu_mult(float* x1, float* scale, const  int* channels, const  int* size)
 {
     int id = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -35,7 +33,8 @@ __global__ void cu_mult(float* x1, float* scale, const  int* channels, const  in
         x1[index] *= *scale;
     }
 }
-void gpuRev(float* dryBuffer,float* irBuffer, const int bufferSize, float* out, const unsigned int channels)
+
+  void gpuRev(float* dryBuffer,float* irBuffer, const int bufferSize, float* out, const unsigned int channels)
 {
 
 	int threads = 1024;
