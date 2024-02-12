@@ -15,4 +15,5 @@ I provided a 128 channel impulse response and the resulting file is a 128 channe
 # Note: 
 This only works on Windows and Ubuntu. \
 It still needs optimisation. \
+There is still a bug when writing the file but it works :) \
 As a template repo i used this [template](https://github.com/anthonyalfimov/JUCE-CMake-Plugin-Template/blob/main/CMakeLists.txt).
