@@ -2,7 +2,7 @@
 #include <JuceHeader.h>
 #include <iostream>
 #include <string>
-
+ 
 
 int main()
 {
@@ -94,10 +94,11 @@ int main()
                                       24,
                                       {},
                                       0));
-      
+	stream.flush();
+	auto outread = bufferout.getArrayOfReadPointers();
 	if (writer != nullptr)
-    	writer->writeFromAudioSampleBuffer (bufferout, channels, bufferout.getNumSamples());
-	
+    	writer->writeFromFloatArrays (outread, channels, bufferout.getNumSamples());
+
 	free(impPtrFlat);
 	free(dryPtrFlat);
 	free(outPtrFlat);
