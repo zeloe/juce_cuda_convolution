@@ -10,7 +10,7 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 option(JUCE_ENABLE_MODULE_SOURCE_GROUPS "Show all module sources in IDE projects" ON)
 
 
-set(LIB_JUCE_TAG "7.0.9")
+set(LIB_JUCE_TAG "7.0.12")
 
 include(FetchContent)
 
@@ -62,7 +62,7 @@ target_link_libraries(${TARGET_NAME}
         juce::juce_core
         juce::juce_audio_utils
     	juce::juce_dsp
-        CUDA::cudart
+        juce::juce_audio_processors
         CU_LIB
     PUBLIC
         juce::juce_recommended_config_flags

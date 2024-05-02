@@ -1,4 +1,6 @@
-#include "cuda/kernel.h"
+
+#include "audiocallback.h"
+#include <windows.h> // Include Windows headers for CoInitializeEx
 #include <JuceHeader.h>
 #include <iostream>
 #include <string>
@@ -7,14 +9,14 @@
 int main()
 {
  
-	auto* IRStream = new juce::MemoryInputStream(BinaryData::_128_wav, BinaryData::_128_wavSize,false);
+	auto* IRStream = new juce::MemoryInputStream(BinaryData::imp_wav, BinaryData::imp_wavSize,false);
 	auto* DRYStream= new juce::MemoryInputStream(BinaryData::dry_wav, BinaryData::dry_wavSize, false);
 	
 	WavAudioFormat wavFormat;
 	std::unique_ptr<AudioFormatReader> impfile (wavFormat.createReaderFor (IRStream, false));
  
 	
-	const unsigned int channels = impfile->numChannels;
+	const juce::int64 channels = impfile->numChannels;
 	WavAudioFormat wavFormat2;
 	std::unique_ptr<AudioFormatReader> dry (wavFormat2.createReaderFor (DRYStream, false));
  
@@ -48,60 +50,32 @@ int main()
 	 
 	dry->read(&bufferdry, 0, temp, 0, true, true);
 	
-	 
-	auto impPointers = bufferimp.getArrayOfReadPointers();
-	auto dryPointer = bufferdry.getReadPointer(0);
+	HRESULT hr;
+	hr = CoInitializeEx(0, COINIT_MULTITHREADED);
+	juce::AudioDeviceManager aman;
+	// Initialize audiocallback
+	aman.initialiseWithDefaultDevices(0, 2);
+	AudioIODevice* device = aman.getCurrentAudioDevice();
 	
+
+	// Create an instance of MyAudioCallback
+	std::unique_ptr<MyAudioCallback> audiocallback = std::make_unique<MyAudioCallback>();
+
 	
-	//float *out = (float*)calloc(W*H, sizeof(float));
-	float* impPtrFlat = (float*)calloc(temp*channels, sizeof(float));
-	float* dryPtrFlat = (float*)calloc(temp*channels, sizeof(float));
-	float* outPtrFlat = (float*)calloc(temp*channels, sizeof(float));
-	int counter = 0;
-	for(int ch = 0; ch < channels; ch++) {
-		for(int samp = 0; samp < temp; samp++) {
-			impPtrFlat[counter] = impPointers[ch][samp];
-			dryPtrFlat[counter] = dryPointer[samp];
-			 
-			counter++;
-		}
+	audiocallback->prepare(bufferdry, bufferimp, device->getCurrentBufferSizeSamples());
+
+	// Add audiocallback to the AudioDeviceManager
+	aman.addAudioCallback(audiocallback.get());
+
+	while (!audiocallback->hasFinished)
+	{
+		juce::Thread::sleep(10);
 	}
-	
-	gpuRev(impPtrFlat, dryPtrFlat, temp, outPtrFlat,channels);
-	counter = 0;
-	auto outPointers = bufferout.getArrayOfWritePointers();
-	for(int ch = 0; ch < channels; ch++) {
-		for(int samp = 0; samp < temp; samp++) {
-			outPointers[ch][samp] = outPtrFlat[counter];
-			counter++;
-		}	
-	}
-
-	
-	
-	juce::WavAudioFormat format;
-	std::unique_ptr<juce::AudioFormatWriter> writer;
 	 
-	juce::File path = juce::File::getSpecialLocation(juce::File::SpecialLocationType::currentExecutableFile);
-	juce::String outfile = path.getFullPathName() + "_output.wav";
-	DBG(outfile);
-
-	juce::FileOutputStream stream(outfile);
-
-	writer.reset (format.createWriterFor ((&stream),
-                                      44100.0,
-                                      channels,
-                                      24,
-                                      {},
-                                      0));
-	stream.flush();
-	auto outread = bufferout.getArrayOfReadPointers();
-	if (writer != nullptr)
-    	writer->writeFromFloatArrays (outread, channels, bufferout.getNumSamples());
-
-	free(impPtrFlat);
-	free(dryPtrFlat);
-	free(outPtrFlat);
+	aman.removeAudioCallback(audiocallback.get());
+	aman.closeAudioDevice();
+	// When your program is about to exit, call CoUninitialize
+	CoUninitialize();
     return 0;
 }
 

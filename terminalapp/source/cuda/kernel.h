@@ -10,11 +10,11 @@
 
 
 
- extern "C" __global__ void circularConvKernel(float* x1, float* x2, const int* size, float* result, const  int* channels);
+ extern "C" __global__ void circularConvKernel(float* x1, float* x2, const int* size, float* result);
 
  extern "C" __global__ void cu_mult(float* x1, float* scale, const  int* channels, const  int* size);
 
- extern "C"   void gpuRev(float* dryBuffer,float* irBuffer, const int bufferSize, float* out, const unsigned int channels);
+ extern "C"   void gpuRev(float* dryBuffer,float* irBuffer, const int bufferSize, float* out, int* d_size);
 
 
 
