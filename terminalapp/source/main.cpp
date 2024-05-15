@@ -1,6 +1,6 @@
 
 #include "audiocallback.h"
-#include <windows.h> // Include Windows headers for CoInitializeEx
+
 #include <JuceHeader.h>
 #include <iostream>
 #include <string>
@@ -50,32 +50,53 @@ int main()
 	 
 	dry->read(&bufferdry, 0, temp, 0, true, true);
 	
-	HRESULT hr;
-	hr = CoInitializeEx(0, COINIT_MULTITHREADED);
+ 
+	juce::ScopedJuceInitialiser_GUI juceInitialiser;
+	 
 	juce::AudioDeviceManager aman;
-	// Initialize audiocallback
-	aman.initialiseWithDefaultDevices(0, 2);
-	AudioIODevice* device = aman.getCurrentAudioDevice();
+	auto& devices = aman.getAvailableDeviceTypes();
+	 
+	// Iterate through the available devices
+	for (auto& device : devices) {
+		std::cout << "Device Type: " << device->getTypeName() << std::endl;
+		}
 	
+	juce::AudioDeviceManager::AudioDeviceSetup setup;
+	setup.bufferSize = 512;
+	setup.sampleRate = 44100;
+	setup.inputChannels = 0;
+	setup.outputChannels = 2;
+	aman.setAudioDeviceSetup(setup, true);
+	aman.setCurrentAudioDeviceType("DirectSound", true);
+
+	auto device = aman.getCurrentAudioDevice();
+	
+	if (device == nullptr)
+	{
+		std::cerr << "No current audio device available!" << std::endl;
+		return 1;
+	}
+
 
 	// Create an instance of MyAudioCallback
 	std::unique_ptr<MyAudioCallback> audiocallback = std::make_unique<MyAudioCallback>();
 
 	
 	audiocallback->prepare(bufferdry, bufferimp, device->getCurrentBufferSizeSamples());
+	juce::Thread::sleep(1000); // Sleep for 1 second
 
 	// Add audiocallback to the AudioDeviceManager
 	aman.addAudioCallback(audiocallback.get());
 
-	while (!audiocallback->hasFinished)
-	{
-		juce::Thread::sleep(10);
-	}
+	// Wait for user input to exit the application
+	std::cout << "Press Enter to exit..." << std::endl;
+	std::cin.get();
+
 	 
 	aman.removeAudioCallback(audiocallback.get());
 	aman.closeAudioDevice();
-	// When your program is about to exit, call CoUninitialize
-	CoUninitialize();
+ 
+	 
     return 0;
 }
 
