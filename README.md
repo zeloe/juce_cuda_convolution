@@ -9,7 +9,7 @@
 # How it works
 It performs time domain convolution on two different files on a realtime thread. \
 They are in project as binary data. \
-I used uniformly filter partition. 
+I used uniformly filter partition using overlap add. 
 # Note: 
 This only works on Windows and Ubuntu. \
 It still needs optimisation. \
