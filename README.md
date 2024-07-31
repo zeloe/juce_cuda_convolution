@@ -14,3 +14,5 @@ I used uniformly filter partition using overlap add.
 This only works on Windows and Ubuntu. \
 It still needs optimisation. \
 As a template repo i used this [template](https://github.com/anthonyalfimov/JUCE-CMake-Plugin-Template/blob/main/CMakeLists.txt).
+\
+will add more detailed description soon 
