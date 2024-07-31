@@ -1,6 +1,6 @@
-cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.9 FATAL_ERROR)
 
-project(CUDATemplate LANGUAGES VERSION 0.0.1 CUDA CXX)
+project(CudaConv LANGUAGES VERSION 0.0.1  CXX CUDA)
 
 
 # IDEs:  Enable grouping of source files into folders in IDEs.
@@ -41,21 +41,18 @@ endif()
 
 juce_add_console_app(${TARGET_NAME}
     PRODUCT_NAME "CudaConv")
-find_package(CUDAToolkit REQUIRED)
-find_package(CUDA REQUIRED)
- 
+#find_package(CUDAToolkit REQUIRED)
+#set_property(TARGET ${TARGET_NAME} PROPERTY CUDA_STANDARD 17)
 add_subdirectory(terminalapp)
 add_subdirectory(binarydata)
-
+enable_language(CUDA)
+SET(CMAKE_CUDA_STANDARD 11)
 target_compile_definitions(${TARGET_NAME}
     PRIVATE
         # JUCE_WEB_BROWSER and JUCE_USE_CURL would be on by default, but you might not need them.
         JUCE_WEB_BROWSER=0  # If you remove this, add `NEEDS_WEB_BROWSER TRUE` to the `juce_add_console_app` call
-        JUCE_USE_CURL=0)    # If you remove this, add `NEEDS_CURL TRUE` to the `juce_add_console_app` call
-# Set C++ standard
-set_property(TARGET ${TARGET_NAME} PROPERTY CUDA_STANDARD 17)
-
-
+        JUCE_USE_CURL=0)     
+ 
 target_link_libraries(${TARGET_NAME}
     PRIVATE
         BinaryData

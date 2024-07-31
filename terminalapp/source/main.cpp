@@ -53,48 +53,77 @@ int main()
  
 	juce::ScopedJuceInitialiser_GUI juceInitialiser;
 	 
-	juce::AudioDeviceManager aman;
-	auto& devices = aman.getAvailableDeviceTypes();
-	 
-	// Iterate through the available devices
-	for (auto& device : devices) {
-		std::cout << "Device Type: " << device->getTypeName() << std::endl;
-		}
-	
-	juce::AudioDeviceManager::AudioDeviceSetup setup;
-	setup.bufferSize = 512;
-	setup.sampleRate = 44100;
-	setup.inputChannels = 0;
-	setup.outputChannels = 2;
-	aman.setAudioDeviceSetup(setup, true);
-	aman.setCurrentAudioDeviceType("DirectSound", true);
+	// Create the AudioDeviceManager instance
+	juce::AudioDeviceManager audioDeviceManager;
 
-	auto device = aman.getCurrentAudioDevice();
+	// Initialize the AudioDeviceManager with no input/output channels (default setup)
+	audioDeviceManager.initialise(0, 2, nullptr, true);
+
+	// Get the available device types
+	auto& deviceTypes = audioDeviceManager.getAvailableDeviceTypes();
 	
-	if (device == nullptr)
-	{
+	// Iterate through the available device types
+	for (auto& deviceType : deviceTypes) {
+		std::cout << "Device Type: " << deviceType->getTypeName() << std::endl;
+		if (deviceType->getTypeName() == "ASIO") {
+			std::cout << "ASIO devices available." << std::endl;
+		}
+	}
+	
+	// Set the current audio device type to ASIO
+	audioDeviceManager.setCurrentAudioDeviceType("DirectSound", true);
+	// Get the current audio device
+	auto* currentDevice = audioDeviceManager.getCurrentAudioDevice();
+	std::cout << "Current Device ";
+	std::cout << currentDevice->getDefaultBufferSize() << " = Current Buffer Size" << std::endl;
+	std::cout << currentDevice->getTypeName() << std::endl;
+	if (currentDevice == nullptr) {
 		std::cerr << "No current audio device available!" << std::endl;
 		return 1;
 	}
-
-
-	// Create an instance of MyAudioCallback
-	std::unique_ptr<MyAudioCallback> audiocallback = std::make_unique<MyAudioCallback>();
-
 	
-	audiocallback->prepare(bufferdry, bufferimp, device->getCurrentBufferSizeSamples());
+
+	// Retrieve the current device setup
+	juce::AudioDeviceManager::AudioDeviceSetup deviceSetup;
+	audioDeviceManager.getAudioDeviceSetup(deviceSetup);
+
+	// Set the desired buffer size (e.g., 128 samples)
+	deviceSetup.bufferSize = 512;
+
+	// Apply the updated setup
+	juce::String error = audioDeviceManager.setAudioDeviceSetup(deviceSetup, true);
+
+	// Verify the buffer size has been set
+	currentDevice = audioDeviceManager.getCurrentAudioDevice();
+
+	if (currentDevice != nullptr) {
+		std::cout << "New Buffer Size: " << currentDevice->getCurrentBufferSizeSamples() << " samples" << std::endl;
+	}
+	else {
+		std::cerr << "No current audio device available after setting buffer size!" << std::endl;
+		return 1;
+	}
+	
+	std::unique_ptr<MyAudioCallback> audiocallback = std::make_unique<MyAudioCallback>(bufferimp.getWritePointer(0), deviceSetup.bufferSize,bufferimp.getNumSamples(),bufferdry.getWritePointer(0),bufferdry.getNumSamples());
 	juce::Thread::sleep(1000); // Sleep for 1 second
 
-	// Add audiocallback to the AudioDeviceManager
-	aman.addAudioCallback(audiocallback.get());
+	audioDeviceManager.addAudioCallback(audiocallback.get());
+	std::cout << "STARTING" << std::endl;
+	while (true) {
+	 
+		// Print CPU usage
+		//std::cout << "CPU Usage: " << aman.getCpuUsage() << "%" << std::endl;
 
-	// Wait for user input to exit the application
-	std::cout << "Press Enter to exit..." << std::endl;
-	std::cin.get();
+		 
+		 
+
+		// Wait for a short duration before printing CPU usage again
+		//std::this_thread::sleep_for(std::chrono::seconds(1)); // Adjust the duration as needed
+	}
 
 	 
-	aman.removeAudioCallback(audiocallback.get());
-	aman.closeAudioDevice();
+	audioDeviceManager.removeAudioCallback(audiocallback.get());
+	audioDeviceManager.closeAudioDevice();
  
 	 
     return 0;
