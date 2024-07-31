@@ -30,7 +30,6 @@ GPUConvEngine::GPUConvEngine(float* impulseResponseBufferData, int maxBufferSize
 	// get the number of partitions
 	h_numPartitions = (int((impulseResponseSize) / bs) + 1);
 	h_paddedSize = h_numPartitions * bs;
-	trackSize = h_paddedSize;
 	// create the h_impPaddedBuffer and a tempBuffer
 	thrust::host_vector<float> tempBuffer(h_paddedSize);
 
@@ -85,12 +84,10 @@ GPUConvEngine::GPUConvEngine(float* impulseResponseBufferData, int maxBufferSize
 	dim3 dBlocks((h_paddedSize / bs + dThreads.x - 1) / dThreads.x, (twobs + dThreads.y - 1) / dThreads.y);
 	dim3 threadsPerBlock(256);
 	dim3 numBlocks((h_paddedSize + threadsPerBlock.x - 1) / threadsPerBlock.x);
-	convData = { d_delayBuffer.data().get() , d_impPaddedBuffer.data().get(),  d_accumBuffer.data().get(),bs,h_paddedSize,dThreads,dBlocks,d_sliceBuffer.data().get(),threadsPerBlock,numBlocks,stream,tempScale };
-	writePointer = 0;
+	convData = { d_delayBuffer.data().get() , d_impPaddedBuffer.data().get(),  d_accumBuffer.data().get(),bs,h_paddedSize,dThreads,dBlocks,d_sliceBuffer.data().get(),stream };
+	
 	d_tempBuffer.resize(h_paddedSize);
-	readPointer = 0;
-	tempScale = 1.f / h_paddedSize;
-	std::cout << tempScale << std::endl;
+	
 
 }
 
@@ -104,7 +101,7 @@ void  GPUConvEngine::process(float* in) {
 	//transfer to gpu
 	d_dryPaddedBuffer = h_dryPaddedBuffer;
 	 
-	// Perform the delay line operation for the first buffer
+	// Perform the (FDL) Time Domain Shift operation for the first buffer
 	shiftAndInsert(d_delayBuffer, d_dryPaddedBuffer, bs, h_paddedSize, d_tempBuffer);
 
 	//launch the convolution Engine
@@ -127,6 +124,7 @@ void  GPUConvEngine::process(float* in) {
 		h_overlap[i] = h_res[i + bs - 1];
 		
 	}
+	//clear to prevent ear damage
 	thrust::fill(d_sliceBuffer.begin(), d_sliceBuffer.end(), 0);
 		 
 }
@@ -142,7 +140,4 @@ void  GPUConvEngine::launchEngine(){
 	gpuRev2(convData);
 	
 }
-
-float* returnResult(float* result) {
-	return result;
-}
+ 

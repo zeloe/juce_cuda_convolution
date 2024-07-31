@@ -12,14 +12,6 @@
 
 #define _GPUConvEngine_H_
 
-template <typename T>
-struct scale
-{
-	__host__ __device__
-		T operator()(const T& x) const {
-		return x * 0.5;
-	}
-}; 
 
 class GPUConvEngine {
 public:
@@ -55,20 +47,16 @@ private:
 	int offset2 = 0;
 	int resultSize = 0;
 	int trackSize = 0;
-	// setup arguments
-	scale<float> d_scale;
+ 
+	 
 	ConvData convData;
-	int* d_drySize = nullptr;
-	int* d_wetSize = nullptr;
+	 
 	cudaStream_t stream;
-	int writePointer;
-	int size;
-	int delay;
-	int readPointer; 
+	 
 	float tempScale;
 
 
-	// Function to shift elements in the delay line buffer
+	// Function to shift elements in the time domain buffer
 	void shiftAndInsert(thrust::device_vector<float>& delayBuffer, const thrust::device_vector<float>& inputBuffer, int blockSize, int paddedSize, thrust::device_vector<float>& tempBuffer) {
 
 		// Copy elements from the delay buffer to the temporary buffer with the offset
@@ -78,7 +66,7 @@ private:
 		// Insert the new elements at the beginning of the delay buffer
 		thrust::copy(inputBuffer.begin(), inputBuffer.end(), delayBuffer.begin());
 
-		// Copy back the shifted elements from the temporary buffer to the delay buffer
+		// Copy back the shifted elements from the temporary buffer to the time domain buffer
 		thrust::copy(tempBuffer.begin() + blockSize, tempBuffer.end(), delayBuffer.begin() + blockSize);
 	}
 
