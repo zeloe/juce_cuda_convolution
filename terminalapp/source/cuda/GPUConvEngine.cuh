@@ -35,8 +35,8 @@ private:
 	int h_convResSize = 0;
 	int h_SizeOfSubPartitions = 0;
  
-	const int numOfSubPartitions = 4;
-	cudaStream_t streams[4];
+	const int numOfSubPartitions = 1;
+	cudaStream_t streams[1];
 	int* h_sizesOfSubPartitions = nullptr;
 	
 	
