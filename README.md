@@ -53,7 +53,7 @@ Res[2] += a1 * b1
 
 ## Time Domain Buffer
 This holds all values for convolution in size of the padded impulseresponse. \
-Padded impulse response is a multiple of buffersize and number of paralell convolutions. \ 
+Padded impulse response is a multiple of buffersize and number of paralell convolutions. 
 Insert and shift kernel copies new buffer at beggining. \
 All other content gets shifted by buffersize. \
 Content at end of Time Domain Buffer gets discarded. 
