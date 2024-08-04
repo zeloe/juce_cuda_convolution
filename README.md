@@ -59,7 +59,8 @@ All other content gets shifted by buffersize. \
 Content at end of Time Domain Buffer gets discarded. 
 
 ## Cuda
-It uses four kernels in parallel using streams. \
+It uses one kernel. \
+Inside header file you can specify number of paralell streams. \
 Each of these kernels computes convolution results and sums them inside same buffer. 
 
 ## Hardware 
@@ -73,5 +74,5 @@ It still needs optimisation. \
 As a template repo i used this [template](https://github.com/anthonyalfimov/JUCE-CMake-Plugin-Template/blob/main/CMakeLists.txt).
 \
 Smaller Buffer Sizes = Lower Cpu usage \
-Cuda == 12.3 \
-VS = 2022 
+Cuda == 12.3.52 \
+MSVC == 19.36.32537.0
