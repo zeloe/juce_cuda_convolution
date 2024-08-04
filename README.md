@@ -2,9 +2,7 @@
  Linear Convolution using CUDA 
  ```shell
   git clone https://github.com/zeloe/juce_cuda_convolution.git
-  cmake -B build
-  cd build
-  cmake --build . --config Release -j24
+  cmake . -B build -G "Visual Studio 17 2022"
 ```
 # How it works
 It performs time domain convolution on two different files on a realtime thread. 
