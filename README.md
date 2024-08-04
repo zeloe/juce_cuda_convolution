@@ -41,9 +41,9 @@ Res[1] += a0 * b1 + a1 * b0
 
 ### Third Loop 
 index_within_partition  = 2 \
-start_idx = max(0, 2 - 2 + 1) = 2 \
+start_idx = max(0, 2 - 2 + 1) = 1 \
 end_idx = min(2 + 1, 2) = 2 \
-loop start_idx = 2 to end_idx = 2\
+loop start_idx = 1 to end_idx = 2\
 flip index (2-1) \
 *index* = (1,1) 
 
