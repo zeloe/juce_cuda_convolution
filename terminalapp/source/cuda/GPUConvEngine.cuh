@@ -1,17 +1,18 @@
-#include <thrust/host_vector.h>
-#include <thrust/device_vector.h>
-#include <thrust/fill.h>
-#include <thrust/copy.h>
-#include <thrust/device_ptr.h>
-#include <thrust/transform.h>
-#include "ConvKernel.cuh"
+#include <stdlib.h> 
 
+#include "cuda_runtime.h"
+#include <device_launch_parameters.h>
+
+#include <stdio.h>
 
 
 #ifndef _GPUConvEngine_H_
 
 #define _GPUConvEngine_H_
 
+__global__ void  partitionedSubConvolution(float* Result, const float* TimeDomainBuffer, const float* ImpulseResponse, const int bufferSize, const int impulseSize, const int begin);
+
+__global__ void  shiftAndInsertKernel(float* delayBuffer, const float* inputBuffer, const int blockSize, const int paddedSize);
 
 class GPUConvEngine {
 public:
@@ -25,52 +26,34 @@ public:
 	float* h_result_ptr = nullptr;
 private:
 	void   launchEngine();
-
-	thrust::host_vector<float> h_overLapBuffer;
-	thrust::host_vector<float> h_dryPaddedBuffer;
-	thrust::host_vector<float> h_resultPaddedBuffer;
-	thrust::host_vector<float> h_sliceBuffer;
-	thrust::host_vector<float> h_result;
-	thrust::device_vector<float> d_dryPaddedBuffer;
-	thrust::device_vector<float> d_dryTrackBuffer;
-	thrust::device_vector<float> d_impPaddedBuffer;
-	thrust::device_vector<float> d_accumBuffer;
-	thrust::device_vector<float> d_sliceBuffer;
-	thrust::device_vector<float> d_delayBuffer;
-	thrust::device_vector<float> d_tempBuffer;
-	int twobs = 0;
+	void checkCudaError(cudaError_t err, const char* errMsg);
+	
+	 
 	int bs = 0;
 	int h_numPartitions = 0;
 	int h_paddedSize = 0;
-	int h_ressize = 0;
-	int offset = 0;
-	int offset2 = 0;
-	int resultSize = 0;
-	int trackSize = 0;
+	int h_convResSize = 0;
+	int h_SizeOfSubPartitions = 0;
  
-	 
-	ConvData convData;
-	 
-	cudaStream_t stream;
-	 
+	const int numOfSubPartitions = 4;
+	cudaStream_t streams[4];
+	int* h_sizesOfSubPartitions = nullptr;
+	
+	
 	float tempScale;
-
-
-	// Function to shift elements in the time domain buffer
-	void shiftAndInsert(thrust::device_vector<float>& delayBuffer, const thrust::device_vector<float>& inputBuffer, int blockSize, int paddedSize, thrust::device_vector<float>& tempBuffer) {
-
-		// Copy elements from the delay buffer to the temporary buffer with the offset
-		thrust::copy(delayBuffer.begin(), delayBuffer.end() - blockSize, tempBuffer.begin() + blockSize);
-		thrust::copy(delayBuffer.end() - blockSize, delayBuffer.end(), tempBuffer.begin());
-
-		// Insert the new elements at the beginning of the delay buffer
-		thrust::copy(inputBuffer.begin(), inputBuffer.end(), delayBuffer.begin());
-
-		// Copy back the shifted elements from the temporary buffer to the time domain buffer
-		thrust::copy(tempBuffer.begin() + blockSize, tempBuffer.end(), delayBuffer.begin() + blockSize);
-	}
-
-
+	float* d_IR_padded = nullptr;
+	float* d_TimeDomain_padded = nullptr;
+	size_t SHMEM = 0;
+	float* d_ConvolutionRes = nullptr;
+	float* h_ConvolutionRes = nullptr;
+	float* h_Overlap = nullptr;
+	float* d_Input = nullptr;
+ 
+	dim3 dThreads;
+	dim3 dBlocks;
+	dim3 threadsPerBlock;
+	dim3 numBlocks;
+	
 };
 
 

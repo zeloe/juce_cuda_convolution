@@ -2,8 +2,7 @@
 
 #include "audiocallback.h"
 
-MyAudioCallback::MyAudioCallback(float* impulseResponseBufferData, int maxBufferSize, int impulseResponseSize, float* dryPtr, int drySize) : juce::Thread("FilterPartionThread") {
-
+MyAudioCallback::MyAudioCallback(float* impulseResponseBufferData, int maxBufferSize, int impulseResponseSize, float* dryPtr, int drySize)  {
     engine = std::make_unique<GPUConvEngine>(impulseResponseBufferData, maxBufferSize, impulseResponseSize);
     tempDry.setSize(1, maxBufferSize);
     tempDry.clear();
@@ -16,9 +15,7 @@ MyAudioCallback::MyAudioCallback(float* impulseResponseBufferData, int maxBuffer
 MyAudioCallback::~MyAudioCallback()  
     {
 
-       
-
-        stopThread(2000);
+        
     };
  
 void MyAudioCallback::audioDeviceIOCallbackWithContext(const float* const* inputChannelData,
@@ -54,12 +51,7 @@ void MyAudioCallback::audioDeviceIOCallbackWithContext(const float* const* input
         }
         
 
-    }
- void MyAudioCallback::run()   {
-    float* dry = tempDry.getWritePointer(0);
-    engine->process(dry);
-  
-    }
+    } 
 void MyAudioCallback::prepare(juce::AudioBuffer<float>& dry, juce::AudioBuffer<float>& imp, int bufferSize)
     {
 

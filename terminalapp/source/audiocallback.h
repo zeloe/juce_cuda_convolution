@@ -6,7 +6,7 @@
 #include "JuceHeader.h"
 #include "cuda/GPUConvEngine.cuh"
 
-    class MyAudioCallback : public juce::AudioIODeviceCallback, public juce::Thread
+    class MyAudioCallback : public juce::AudioIODeviceCallback 
     {
     public:
         MyAudioCallback(float* impulseResponseBufferData, int maxBufferSize, int impulseResponseSize, float* dryPtr, int drySize);
@@ -17,7 +17,7 @@
             int	numOutputChannels,
             int	numSamples,
             const AudioIODeviceCallbackContext& context) override;
-        void run() override;
+         
         void prepare(juce::AudioBuffer<float>& dry, juce::AudioBuffer<float>& imp, int bufferSize);
         bool hasFinished = false;
 
