@@ -1,11 +1,10 @@
 #ifndef _AUDIOCALLBACK_H_
-
 #define _AUDIOCALLBACK_H_
 
-
-#include "JuceHeader.h"
+#include <JuceHeader.h>
 #include "cuda/GPUConvEngine.cuh"
 
+<<<<<<< Updated upstream
     class MyAudioCallback : public juce::AudioIODeviceCallback, public juce::Thread
     {
     public:
@@ -20,30 +19,37 @@
         void run() override;
         void prepare(juce::AudioBuffer<float>& dry, juce::AudioBuffer<float>& imp, int bufferSize);
         bool hasFinished = false;
+=======
+class MyAudioCallback : public juce::AudioIODeviceCallback
+{
+public:
+    MyAudioCallback(float* impulseResponseBufferData, int impulseResponseSize, int maxBufferSize, float* dryPtr, int drySize, bool liveInput);
+    MyAudioCallback(float* impulseResponseBufferData, int impulseResponseSize, int maxBufferSize, bool liveInput);
+    ~MyAudioCallback() override;
+>>>>>>> Stashed changes
 
+    void audioDeviceIOCallbackWithContext(const float* const* inputChannelData,
+        int numInputChannels,
+        float* const* outputChannelData,
+        int numOutputChannels,
+        int numSamples,
+        const juce::AudioIODeviceCallbackContext& context) override;
 
-        virtual void 	audioDeviceAboutToStart(AudioIODevice* device) override;
-           
-        virtual void 	audioDeviceStopped() override;
-            
+    void audioDeviceAboutToStart(juce::AudioIODevice* device) override;
+    void audioDeviceStopped() override;
+    void audioDeviceError(const juce::String& errorMessage) override;
 
-        virtual void 	audioDeviceError(const String& errorMessage) override;
-            
+private:
+    std::unique_ptr<GPUConvEngine> engine;
+    int bs = -1;
+    int drySize = -1;
+    int counter = 0;
+    juce::AudioBuffer<float> tempDry;
+    float* dryPtr = nullptr;
+    float* const* out = nullptr;
+    float* in = nullptr;
+    bool isThreadRunning = false;
+    bool input;
+};
 
-       
-
-
-    private:
-        std::unique_ptr<GPUConvEngine> engine;
-        int bs = -1;
-        int drySize = -1;
-        int counter = 0;
-        juce::AudioBuffer<float>tempDry;
-        float* dryPtr = nullptr;
-        float* const* out = nullptr;
-        float* in= nullptr;
-        bool isThreadRunning = false;
-        CriticalSection bufferMutex;
-    };
-
-#endif
+#endif // _AUDIOCALLBACK_H_
