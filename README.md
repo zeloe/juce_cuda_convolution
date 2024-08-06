@@ -17,8 +17,9 @@ Content at end of Time Domain Buffer gets discarded.
 ## Cuda
 It uses four kernels with different streams. \
 Inside header file you can specify number of paralell streams. (you will need to edit and add functions for that) \
-Each of these kernels computes convolution results and sums them inside same buffer. 
-
+Each of these kernels computes convolution results and sums them inside same buffer.  \
+I used constant memory for offsets in time and impulse response buffer. \
+Shared memory for each sub convolution. 
 ## Hardware 
 GeForce GTX 1660 Ti
 
