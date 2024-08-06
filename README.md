@@ -31,6 +31,5 @@ It still needs optimisation. \
 I tried it also as VST and got it running in mono. I have really old hardware :). \
 As a template repo i used this [template](https://github.com/anthonyalfimov/JUCE-CMake-Plugin-Template/blob/main/CMakeLists.txt).
 \
-Smaller Buffer Sizes = Lower Cpu usage \
 Cuda == 12.3.52 \
 MSVC == 19.36.32537.0
