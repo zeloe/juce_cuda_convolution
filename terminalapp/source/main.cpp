@@ -96,7 +96,7 @@ int main()
 	while (true) {
 	 
 		// Print CPU usage
-		std::cout << "CPU Usage: " << audioDeviceManager.getCpuUsage() << "%" << std::endl;
+		std::cout << "CPU Usage: " << audioDeviceManager.getCpuUsage() * 100 << " %" << std::endl;
 
 		 
 		 

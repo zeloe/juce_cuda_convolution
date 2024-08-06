@@ -6,13 +6,17 @@
 #include <stdio.h>
 
 
+
 #ifndef _GPUConvEngine_H_
 
 #define _GPUConvEngine_H_
+ 
 
-__global__ void  partitionedSubConvolution(float* Result, const float* TimeDomainBuffer, const float* ImpulseResponse, const int bufferSize, const int impulseSize, const int begin);
-
-__global__ void  shiftAndInsertKernel(float* delayBuffer, const float* inputBuffer, const int blockSize, const int paddedSize);
+__global__ void shared_partitioned_convolution1(float* Result, const float* Dry, const float* Imp);
+__global__ void shared_partitioned_convolution2(float* Result, const float* Dry, const float* Imp);
+__global__ void shared_partitioned_convolution3(float* Result, const float* Dry, const float* Imp);
+__global__ void shared_partitioned_convolution4(float* Result, const float* Dry, const float* Imp);
+__global__ void  shiftAndInsertKernel(float* delayBuffer);
 
 class GPUConvEngine {
 public:
@@ -35,8 +39,8 @@ private:
 	int h_convResSize = 0;
 	int h_SizeOfSubPartitions = 0;
  
-	const int numOfSubPartitions = 1;
-	cudaStream_t streams[1];
+	const int numOfSubPartitions = 4;
+	cudaStream_t streams[4] = { nullptr }; // Initialize to nullptr
 	int* h_sizesOfSubPartitions = nullptr;
 	
 	
