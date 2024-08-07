@@ -12,11 +12,11 @@
 #define _GPUConvEngine_H_
  
 
-__global__ void shared_partitioned_convolution1(float* Result, const float* Dry, const float* Imp);
-__global__ void shared_partitioned_convolution2(float* Result, const float* Dry, const float* Imp);
-__global__ void shared_partitioned_convolution3(float* Result, const float* Dry, const float* Imp);
-__global__ void shared_partitioned_convolution4(float* Result, const float* Dry, const float* Imp);
-__global__ void  shiftAndInsertKernel(float* delayBuffer);
+__global__ void shared_partitioned_convolution1(float* __restrict__ Result, const float* __restrict__ Dry, const float* __restrict__ Imp);
+__global__ void shared_partitioned_convolution2(float* __restrict__ Result, const float* __restrict__ Dry, const float* __restrict__ Imp);
+__global__ void shared_partitioned_convolution3(float* __restrict__ Result, const float* __restrict__ Dry, const float* __restrict__ Imp);
+__global__ void shared_partitioned_convolution4(float* __restrict__ Result, const float* __restrict__ Dry, const float* __restrict__ Imp);
+__global__ void  shiftAndInsertKernel(float* __restrict__ delayBuffer);
 
 class GPUConvEngine {
 public:
