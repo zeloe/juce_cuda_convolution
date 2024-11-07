@@ -2,9 +2,9 @@
 
 #include "cuda_runtime.h"
 #include <device_launch_parameters.h>
-
+#include <immintrin.h> // For SSE intrinsics
 #include <stdio.h>
-
+#include <cstring>
 
 
 #ifndef _GPUConvEngine_H_
@@ -12,10 +12,7 @@
 #define _GPUConvEngine_H_
  
 
-__global__ void shared_partitioned_convolution1(float* __restrict__ Result, const float* __restrict__ Dry, const float* __restrict__ Imp);
-__global__ void shared_partitioned_convolution2(float* __restrict__ Result, const float* __restrict__ Dry, const float* __restrict__ Imp);
-__global__ void shared_partitioned_convolution3(float* __restrict__ Result, const float* __restrict__ Dry, const float* __restrict__ Imp);
-__global__ void shared_partitioned_convolution4(float* __restrict__ Result, const float* __restrict__ Dry, const float* __restrict__ Imp);
+__global__ void shared_partitioned_convolution(float* __restrict__ Result, const float* __restrict__ Dry, const float* __restrict__ Imp);
 __global__ void  shiftAndInsertKernel(float* __restrict__ delayBuffer);
 
 class GPUConvEngine {
@@ -25,7 +22,7 @@ public:
 
 	GPUConvEngine(float* impulseResponseBufferData, int maxBufferSize, int impulseResponseSize);
 	
-	void  process(float* in);
+	void  process(float* in, float* const* outputChannelData);
 	 
 	float* h_result_ptr = nullptr;
 private:
@@ -38,11 +35,12 @@ private:
 	int h_paddedSize = 0;
 	int h_convResSize = 0;
 	int h_SizeOfSubPartitions = 0;
- 
+	int floatSizeRes = 0;
+	int bs_float = 0;
 	const int numOfSubPartitions = 4;
 	cudaStream_t streams[4] = { nullptr }; // Initialize to nullptr
 	int* h_sizesOfSubPartitions = nullptr;
-	
+	cudaStream_t stream;
 	
 	float tempScale;
 	float* d_IR_padded = nullptr;

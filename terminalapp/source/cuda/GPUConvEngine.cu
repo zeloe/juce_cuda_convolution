@@ -2,82 +2,47 @@
 #include "GPUConvEngine.cuh"
 // Define the constant memory array
 __constant__ int SIZES[2];
-__constant__ int OFFSETS[4];
 __constant__ float INPUT[1024];
-__global__ void shared_partitioned_convolution1(float* __restrict__ Result, const float* __restrict__ Dry, const float* __restrict__ Imp) {
+__global__ void shared_partitioned_convolution(float* __restrict__ Result, const float* __restrict__ Dry, const float* __restrict__ Imp) {
 	const unsigned int thread_idx = (blockIdx.x * blockDim.x) + threadIdx.x;
 	const unsigned int copy_idx = threadIdx.x;
 	extern __shared__ float partArray[];
+
+	// Declare pointers to the shared memory partitions
 	float* arr1 = &partArray[0];
 	float* arr2 = &partArray[SIZES[0]];
-	arr1[copy_idx] = Dry[thread_idx +  OFFSETS[0]];
-	arr2[copy_idx] = Imp[thread_idx + OFFSETS[0]];
-
+	float* tempResult = &partArray[SIZES[0] * 2];
+	// Load data into shared memory
+	tempResult[copy_idx] = 0.f;
+	tempResult[SIZES[0] + copy_idx] = 0.f;
+	arr1[copy_idx] = Dry[thread_idx];
+	arr2[copy_idx] = Imp[thread_idx];
 
 	__syncthreads();
 
-#pragma unroll
+	// Shared memory to accumulate results before writing them to global memory
+	// Convolution operation (reduction into shared memory)
 	for (int i = 0; i < SIZES[0]; i++) {
-		int inv = (SIZES[0] - copy_idx) % SIZES[0];
-		atomicAdd(&Result[i + inv], arr1[i] * arr2[inv]);
+		int inv = (i + copy_idx) % SIZES[0];
+		tempResult[i + inv] += arr1[i] * arr2[inv];
+	}
+
+	__syncthreads();  // Ensure all threads in the block have finished processing
+
+
+	// Write the accumulated result to global memory (only for the first thread)
+	if (copy_idx == 0) {
+		// Write the first part of the result (up to SIZES[0] - 1)
+		for (int i = 0; i < SIZES[0] - 1; i++) {
+			atomicAdd(&Result[i], tempResult[i]);
+		}
+
+		// Write the second part of the result (for the overlap, from SIZES[0] - 1 to 2 * SIZES[0] - 2)
+		for (int i = SIZES[0] - 1; i < 2 * SIZES[0] - 1; i++) {
+			atomicAdd(&Result[i], tempResult[i]);
+		}
 	}
 }
-
-__global__ void shared_partitioned_convolution2(float* __restrict__ Result, const float* __restrict__ Dry, const float* __restrict__ Imp) {
-	const unsigned int thread_idx = (blockIdx.x * blockDim.x) + threadIdx.x;
-	const unsigned int copy_idx = threadIdx.x;
-	extern __shared__ float partArray[];
-	float* arr1 = &partArray[0];
-	float* arr2 = &partArray[SIZES[0]];
-	arr1[copy_idx] = Dry[thread_idx + OFFSETS[1]];
-	arr2[copy_idx] = Imp[thread_idx + OFFSETS[1]];
-
-
-	__syncthreads();
-
-#pragma unroll
-	for (int i = 0; i < SIZES[0]; i++) {
-		int inv = (SIZES[0] - copy_idx) % SIZES[0];
-		atomicAdd(&Result[i + inv], arr1[i] * arr2[inv]);
-	}
-}
-
-__global__ void shared_partitioned_convolution3(float* __restrict__ Result, const float* __restrict__ Dry, const float* __restrict__ Imp) {
-	const unsigned int thread_idx = (blockIdx.x * blockDim.x) + threadIdx.x;
-	const unsigned int copy_idx = threadIdx.x;
-	extern __shared__ float partArray[];
-	float* arr1 = &partArray[0];
-	float* arr2 = &partArray[SIZES[0]];
-	arr1[copy_idx] = Dry[thread_idx + OFFSETS[2]];
-	arr2[copy_idx] = Imp[thread_idx + OFFSETS[2]];
-
-
-	__syncthreads();
-
-#pragma unroll
-	for (int i = 0; i < SIZES[0]; i++) {
-		int inv = (SIZES[0] - copy_idx) % SIZES[0];
-		atomicAdd(&Result[i + inv], arr1[i] * arr2[inv]);
-	}
-}
-
-__global__ void shared_partitioned_convolution4(float* __restrict__ Result, const float* __restrict__ Dry, const float* __restrict__ Imp) {
-	const unsigned int thread_idx = (blockIdx.x * blockDim.x) + threadIdx.x;
-	const unsigned int copy_idx = threadIdx.x;
-	extern __shared__ float partArray[];
-	float* arr1 = &partArray[0];
-	float* arr2 = &partArray[SIZES[0]];
-	arr1[copy_idx] = Dry[thread_idx + OFFSETS[3]];
-	arr2[copy_idx] = Imp[thread_idx + OFFSETS[3]];
-
-
-	__syncthreads();
-	#pragma unroll
-	for (int i = 0; i < SIZES[0]; i++) {
-		int inv = (SIZES[0] - copy_idx) % SIZES[0];
-		atomicAdd(&Result[i + inv], arr1[i] * arr2[inv]);
-	}
-} 
 
 __global__ void  shiftAndInsertKernel(float* __restrict__ delayBuffer) {
 	int tid = threadIdx.x + blockIdx.x * blockDim.x;
@@ -98,10 +63,9 @@ GPUConvEngine::GPUConvEngine() {
 
 
 GPUConvEngine::~GPUConvEngine() {
-	for (int i = 0; i < numOfSubPartitions; i++) {
-		cudaStreamDestroy(streams[i]);
-	}
-
+	 
+	// Free Stream 
+	cudaStreamDestroy(stream);
 	cudaFree(d_IR_padded);
 	cudaFree(SIZES);
 	cudaFree(d_TimeDomain_padded);
@@ -119,13 +83,14 @@ void GPUConvEngine::checkCudaError(cudaError_t err, const char* errMsg) {
 	}
 }
 GPUConvEngine::GPUConvEngine(float* impulseResponseBufferData, int maxBufferSize, int impulseResponseSize) {
+	cudaStreamCreate(&stream);
 	h_convResSize = maxBufferSize * 2 - 1;
-	int floatSizeRes = h_convResSize * sizeof(float);
+	floatSizeRes = h_convResSize * sizeof(float);
 	checkCudaError(cudaMalloc((void**)&d_ConvolutionRes, floatSizeRes), "d_ConvolutionRes malloc");
 	checkCudaError(cudaMemset(d_ConvolutionRes, 0, floatSizeRes), "d_ConvolutionRes memset");
-	SHMEM = 2 * sizeof(float) * maxBufferSize;
+	SHMEM = 2 * sizeof(float) * maxBufferSize + floatSizeRes;
 	bs = maxBufferSize;
-	
+	bs_float = bs * sizeof(float);
 	int* cpu_sizes = (int*)calloc(2, sizeof(int));
 	h_result_ptr = (float*)calloc(bs, sizeof(float));
 	h_ConvolutionRes = (float*)calloc(h_convResSize, sizeof(float));
@@ -139,19 +104,12 @@ GPUConvEngine::GPUConvEngine(float* impulseResponseBufferData, int maxBufferSize
 	h_paddedSize = h_numPartitions * bs;
 
 	h_SizeOfSubPartitions = h_paddedSize / numOfSubPartitions;
+	 
 
-	int numBerOFSubPArtitions = (h_SizeOfSubPartitions / bs) + 1;
-	h_paddedSize = numBerOFSubPArtitions * bs * numOfSubPartitions;
-	h_SizeOfSubPartitions = h_paddedSize / numOfSubPartitions;
-
-
-	h_sizesOfSubPartitions = (int*)malloc(numOfSubPartitions * sizeof(int));
-	for (int i = 0; i < numOfSubPartitions; i++) {
-		h_sizesOfSubPartitions[i] = h_SizeOfSubPartitions * (i);
-	}
+	 
 	cpu_sizes[1] = h_paddedSize;
 	cudaMemcpyToSymbol(SIZES, cpu_sizes, 2 *  sizeof(int));
-	cudaMemcpyToSymbol(OFFSETS, h_sizesOfSubPartitions, numOfSubPartitions * sizeof(int));
+	 
 	printf("Number of operations for each audioblock ~ %d\n", h_paddedSize * h_paddedSize);
 
 	checkCudaError(cudaMalloc((void**)&d_IR_padded, h_paddedSize * sizeof(float)), "d_IR_padded malloc");
@@ -166,7 +124,7 @@ GPUConvEngine::GPUConvEngine(float* impulseResponseBufferData, int maxBufferSize
 	}
 	dThreads.x = bs;
  
-	dBlocks.x = (numBerOFSubPArtitions);
+	dBlocks.x = (h_numPartitions);
  
 	threadsPerBlock.x = 256;
 	numBlocks.x = (h_paddedSize + threadsPerBlock.x - 1) / threadsPerBlock.x;
@@ -176,24 +134,35 @@ GPUConvEngine::GPUConvEngine(float* impulseResponseBufferData, int maxBufferSize
 
 
 
-void  GPUConvEngine::process(float* in) {
+void  GPUConvEngine::process(float* in, float* const* outputChannelData) {
 
 	//copy content and transfer
-	cudaMemcpyToSymbol(INPUT, in, bs * sizeof(float));
+	cudaMemcpyToSymbolAsync(INPUT, in, bs_float, 0, cudaMemcpyHostToDevice, stream);
 
 
 
 
 	//launch the convolution Engine
 	launchEngine();
+	float* outA = outputChannelData[0];
+	float* outB = outputChannelData[1];
+	__m128 scale = _mm_set1_ps(0.015f); // Load scaling factor into an SSE register
 
+	for (int i = 0; i < bs; i += 4) {
+		// Load 4 floats from h_ConvolutionResL and h_OverlapL
+		__m128 res = _mm_loadu_ps(&h_ConvolutionRes[i]);
+		__m128 overlap = _mm_loadu_ps(&h_Overlap[i]);
 
-	//perform overlap add
-	for (int i = 0; i < bs; i++) {
-		h_result_ptr[i] = (h_ConvolutionRes[i] + h_Overlap[i]) * 0.015;
-		h_Overlap[i] = h_ConvolutionRes[i + bs - 1];
+		// Perform (resL + overlapL) * scale for left channel
+		__m128 result = _mm_mul_ps(_mm_add_ps(res, overlap), scale);
+		_mm_storeu_ps(&outA[i], result); // Store the result in outA
+		_mm_storeu_ps(&outB[i], result); // Store the result in outB
+		 
 
 	}
+
+	// Copy the last `bs` elements as overlap values for the next block
+	std::memcpy(h_Overlap, &h_ConvolutionRes[bs - 1], bs_float);
 
 
 }
@@ -202,24 +171,18 @@ void  GPUConvEngine::process(float* in) {
 
 
 void  GPUConvEngine::launchEngine() {
-			shiftAndInsertKernel << <numBlocks, threadsPerBlock >> > (d_TimeDomain_padded);
-	
-			cudaError_t err = cudaGetLastError();
-			// Launch the partitionedSubConvolution kernels in different streams
+	shiftAndInsertKernel << <numBlocks, threadsPerBlock, 0, stream >> > (d_TimeDomain_padded);
+	shared_partitioned_convolution << <dBlocks, dThreads, SHMEM, stream >> > (d_ConvolutionRes, d_TimeDomain_padded, d_IR_padded);
+	checkCudaError(cudaGetLastError(), "partitionedSubConvolution launch");
 	 
-			shared_partitioned_convolution1 << <dBlocks,dThreads , SHMEM,streams[0] >> > (d_ConvolutionRes, d_TimeDomain_padded, d_IR_padded);
-			shared_partitioned_convolution2 << <dBlocks, dThreads, SHMEM, streams[1] >> > (d_ConvolutionRes, d_TimeDomain_padded, d_IR_padded);
-			shared_partitioned_convolution3 << <dBlocks, dThreads, SHMEM, streams[2] >> > (d_ConvolutionRes, d_TimeDomain_padded, d_IR_padded);
-			shared_partitioned_convolution4 << <dBlocks, dThreads, SHMEM, streams[3] >> > (d_ConvolutionRes, d_TimeDomain_padded, d_IR_padded);
-			checkCudaError(cudaGetLastError(), "partitionedSubConvolution launch");
-
-			cudaDeviceSynchronize();
 	 
 		 
  
 	// Copy the convolution results back to the host
-	checkCudaError(cudaMemcpyAsync(h_ConvolutionRes, d_ConvolutionRes, h_convResSize * sizeof(float), cudaMemcpyDeviceToHost, streams[numOfSubPartitions - 1]), "d_ConvolutionRes copy to host");
+			cudaMemcpyAsync(h_ConvolutionRes, d_ConvolutionRes, floatSizeRes, cudaMemcpyDeviceToHost, stream);
 	//set the result to 0
 
-	cudaMemset(d_ConvolutionRes, 0, h_convResSize * sizeof(float));
+			cudaMemsetAsync(d_ConvolutionRes, 0, floatSizeRes, stream);
+
+			cudaStreamSynchronize(stream);
 }
