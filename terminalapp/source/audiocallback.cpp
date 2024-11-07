@@ -41,14 +41,8 @@ void MyAudioCallback::audioDeviceIOCallbackWithContext(const float* const* input
             }
         }
         //startThread(Priority::normal);
-        engine->process(dry);
-        float* ptr_L = outputChannelData[0];
-        float* ptr_R = outputChannelData[1];
-        for (int i = 0; i < numSamples; i++) {
-            ptr_L[i] = engine->h_result_ptr[i];
-            ptr_R[i] = engine->h_result_ptr[i];
+        engine->process(dry, outputChannelData);
 
-        }
         
 
     } 
