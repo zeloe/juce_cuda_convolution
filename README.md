@@ -1,21 +1,25 @@
 # juce_cuda_convolution
- Linear Convolution using CUDA 
- ```shell
-  git clone https://github.com/zeloe/juce_cuda_convolution.git
-  cmake . -B build -G "Visual Studio 17 2022"
+Linear Convolution using CUDA
+Clone the repository and build using CMake:
+```shell
+git clone https://github.com/zeloe/juce_cuda_convolution.git
+cmake . -B build -G "Visual Studio 17 2022"
 ```
-# How it works
-It performs time domain convolution on two different files on a realtime thread.  
+## How It Works
+This project performs time-domain convolution on two different files in real-time.
 
-## Time Domain Buffer
-This holds all values for convolution in size of the padded impulseresponse. \
-Padded impulse response is a multiple of buffersize and number of paralell convolutions. 
-Insert and shift kernel copies new buffer at beggining. \
-All other content gets shifted by buffersize. \
-Content at end of Time Domain Buffer gets discarded. 
+Time Domain Buffer
+This buffer holds all values for convolution, sized to the padded impulse response.
+The padded impulse response is a multiple of the buffer size and the number of parallel convolutions.
+
+Insert and shift the kernel copies into the new buffer at the beginning.
+
+All other content gets shifted by the buffer size.
+
+Content at the end of the Time Domain Buffer gets discarded.
 
 ## Hardware 
-GeForce GTX 1660 Ti
+Tested on GeForce GTX 1660 Ti.
 
 
 
