@@ -25,7 +25,6 @@ Tested on GeForce GTX 1660 Ti.
 
 
 # Note: 
-It still needs optimisation. \
 Check out [here](https://github.com/zeloe/RTConvolver) VST3 Plugin to use in DAW. \
 As a template repo i used this [template](https://github.com/anthonyalfimov/JUCE-CMake-Plugin-Template/blob/main/CMakeLists.txt).
 \
